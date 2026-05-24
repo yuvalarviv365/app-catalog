@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { AppHealthCard } from "@/components/health/AppHealthCard"
-import { RefreshButton } from "@/components/health/RefreshButton"
 import { CollapsibleSection } from "@/components/health/CollapsibleSection"
 import { UserTypeToggle } from "@/components/health/UserTypeToggle"
 import { Suspense } from "react"
@@ -113,7 +112,6 @@ export default async function HealthPage({
 }) {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  const isAdmin = (session.user as { role?: string })?.role === "ADMIN"
 
   const { userType = "Organic" } = await searchParams
 
@@ -136,7 +134,6 @@ export default async function HealthPage({
           <Suspense>
             <UserTypeToggle current={userType} />
           </Suspense>
-          {isAdmin && <RefreshButton isAdmin={isAdmin} />}
         </div>
       </div>
 

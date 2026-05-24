@@ -1,12 +1,12 @@
 #!/bin/bash
 # Sync script called by cron jobs.
-# Usage: ./scripts/sync.sh releases|health|bp
+# Usage: ./scripts/sync.sh releases|health
 #
 # Cron setup (crontab -e):
 #   0 */6 * * * /Users/yuvalarviv/projects/app-catalog/scripts/sync.sh releases
 #   0 */4 * * * /Users/yuvalarviv/projects/app-catalog/scripts/sync.sh health
-#   0 * * * *  /Users/yuvalarviv/projects/app-catalog/scripts/sync.sh bp
-#   0 2 * * *  /Users/yuvalarviv/projects/app-catalog/scripts/sync.sh app-mapping
+#
+# Note: bp and app-mapping are handled by n8n workflows (hourly and daily).
 
 set -euo pipefail
 
@@ -15,8 +15,8 @@ APP_URL="http://localhost:3000"
 LOG_DIR="/Users/yuvalarviv/projects/app-catalog/logs"
 mkdir -p "$LOG_DIR"
 
-if [[ "$TYPE" != "releases" && "$TYPE" != "health" && "$TYPE" != "bp" && "$TYPE" != "app-mapping" ]]; then
-  echo "Usage: $0 releases|health|bp|app-mapping" >&2
+if [[ "$TYPE" != "releases" && "$TYPE" != "health" ]]; then
+  echo "Usage: $0 releases|health" >&2
   exit 1
 fi
 
@@ -33,13 +33,10 @@ fi
 
 if [[ "$TYPE" == "releases" ]]; then
   ENDPOINT="$APP_URL/api/v1/sync/google-play"
-elif [[ "$TYPE" == "health" ]]; then
-  ENDPOINT="$APP_URL/api/v1/sync/health"
-elif [[ "$TYPE" == "app-mapping" ]]; then
-  ENDPOINT="$APP_URL/api/v1/sync/app-mapping"
 else
-  ENDPOINT="$APP_URL/api/v1/sync/bp"
+  ENDPOINT="$APP_URL/api/v1/sync/health"
 fi
+
 LOG_FILE="$LOG_DIR/sync-$TYPE.log"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 

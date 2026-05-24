@@ -82,14 +82,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Fire-and-forget: sync package-name → redashName mapping for the new app
-    const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
-    const secret  = process.env.SYNC_SECRET ?? ""
-    fetch(`${baseUrl}/api/v1/sync/app-mapping`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${secret}` },
-    }).catch(() => { /* non-critical, will retry on next daily cron */ })
-
     return Response.json(app, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database error"
