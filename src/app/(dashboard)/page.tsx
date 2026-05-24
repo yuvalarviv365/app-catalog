@@ -1,25 +1,45 @@
 import { SummaryCards } from "@/components/dashboard/SummaryCards"
 import { WorldMap, type MarketPin } from "@/components/dashboard/WorldMap"
 import { RecentReleases } from "@/components/dashboard/RecentReleases"
-
-const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+import { prisma } from "@/lib/prisma"
+import { AppStatus, IncidentStatus } from "@/generated/prisma/enums"
 
 async function getSummary() {
-  const res = await fetch(`${BASE}/api/v1/health/summary`, { cache: "no-store" })
-  if (!res.ok) return { total: 0, active: 0, openIncidents: 0, marketCount: 0 }
-  return res.json()
+  const [total, active, openIncidents, marketCount] = await Promise.all([
+    prisma.app.count(),
+    prisma.app.count({ where: { status: AppStatus.ACTIVE } }),
+    prisma.incident.count({ where: { status: { in: [IncidentStatus.OPEN, IncidentStatus.INVESTIGATING] } } }),
+    prisma.market.count(),
+  ])
+  return { total, active, openIncidents, marketCount }
 }
 
-async function getCurrentHealth() {
-  const res = await fetch(`${BASE}/api/v1/health/current`, { cache: "no-store" })
-  if (!res.ok) return []
-  return res.json()
+async function getCurrentHealth(): Promise<HealthEntry[]> {
+  const apps = await prisma.app.findMany({
+    include: {
+      markets: { include: { market: true } },
+      health: { orderBy: { createdAt: "desc" } },
+    },
+  })
+  return apps.flatMap((app): HealthEntry[] => {
+    if (app.markets.length === 0) {
+      const latest = app.health.find((h) => h.marketId === null) ?? app.health[0]
+      return [{ appId: app.id, appName: app.name, appSlug: app.slug, appIconUrl: app.iconUrl ?? null, marketCode: null, marketName: null, status: latest?.status ?? "UNKNOWN" }]
+    }
+    return app.markets.map(({ market }): HealthEntry => {
+      const latest = app.health.find((h) => h.marketId === market.id) ?? app.health.find((h) => h.marketId === null) ?? app.health[0]
+      return { appId: app.id, appName: app.name, appSlug: app.slug, appIconUrl: app.iconUrl ?? null, marketCode: market.code, marketName: market.name, status: latest?.status ?? "HEALTHY" }
+    })
+  })
 }
 
 async function getRecentReleases() {
-  const res = await fetch(`${BASE}/api/v1/releases?limit=5`, { cache: "no-store" })
-  if (!res.ok) return { data: [] }
-  return res.json()
+  const data = await prisma.release.findMany({
+    take: 5,
+    include: { app: { select: { id: true, name: true, slug: true } } },
+    orderBy: { releaseDate: "desc" },
+  })
+  return { data }
 }
 
 // Worst-status priority order

@@ -6,7 +6,7 @@ interface Release {
   id: string
   version: string
   platform: string
-  releaseDate: string
+  releaseDate: Date | string
   app: {
     name: string
     slug: string

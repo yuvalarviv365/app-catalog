@@ -21,9 +21,7 @@ import {
 import { PlatformBadge } from "@/components/apps/PlatformBadge"
 import { BPHealthTab } from "@/components/health/BPHealthTab"
 import { GlobeIcon, GitBranchIcon, UserIcon, PackageIcon, TagIcon, CalendarIcon, SmartphoneIcon, ExternalLinkIcon, PencilIcon } from "lucide-react"
-
-
-const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+import { prisma } from "@/lib/prisma"
 
 const releaseTypeColors: Record<string, string> = {
   MAJOR: "bg-red-100 text-red-800 border-red-200",
@@ -41,10 +39,15 @@ const marketStatusColors: Record<string, string> = {
 }
 
 async function getApp(slug: string) {
-  const res = await fetch(`${BASE}/api/v1/apps/${slug}`, { cache: "no-store" })
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error("Failed to fetch app")
-  return res.json()
+  return prisma.app.findUnique({
+    where: { slug },
+    include: {
+      markets: { include: { market: true } },
+      health: { orderBy: { createdAt: "desc" }, take: 50 },
+      releases: { orderBy: { releaseDate: "desc" }, take: 10 },
+      owner: { select: { id: true, name: true, email: true } },
+    },
+  })
 }
 
 export default async function AppDetailPage({
@@ -233,7 +236,7 @@ export default async function AppDetailPage({
                   version: string
                   platform: string
                   releaseType: string
-                  releaseDate: string
+                  releaseDate: Date | string
                   releaseNotes: string | null
                 }) => (
                   <TableRow key={release.id}>
@@ -279,7 +282,7 @@ export default async function AppDetailPage({
                 {app.markets?.map((am: {
                   market: { id: string; code: string; name: string; region: string; flagEmoji: string | null }
                   status: string
-                  launchDate: string | null
+                  launchDate: Date | string | null
                 }) => (
                   <TableRow key={am.market.id}>
                     <TableCell>{am.market.flagEmoji ?? "🌐"}</TableCell>

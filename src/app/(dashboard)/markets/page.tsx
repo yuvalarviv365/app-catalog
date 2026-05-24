@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { prisma } from "@/lib/prisma"
 import {
   Table,
   TableBody,
@@ -7,8 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 interface Market {
   id: string
@@ -20,9 +19,10 @@ interface Market {
 }
 
 async function getMarkets(): Promise<Market[]> {
-  const res = await fetch(`${BASE}/api/v1/markets`, { cache: "no-store" })
-  if (!res.ok) return []
-  return res.json()
+  return prisma.market.findMany({
+    include: { _count: { select: { apps: true } } },
+    orderBy: { name: "asc" },
+  })
 }
 
 export default async function MarketsPage() {

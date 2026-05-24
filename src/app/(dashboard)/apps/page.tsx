@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button"
 import { PlusIcon, SmartphoneIcon, MonitorIcon, TabletIcon, LayersIcon } from "lucide-react"
 import { AppsFilterBar } from "@/components/apps/AppsFilterBar"
 import { Suspense } from "react"
-
-const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+import { prisma } from "@/lib/prisma"
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
   LIVESCORES: "from-cyan-500 to-blue-600",
@@ -47,18 +46,23 @@ interface Market {
 }
 
 async function getApps(category?: string, marketCode?: string): Promise<AppData[]> {
-  const params = new URLSearchParams()
-  if (category && category !== "ALL") params.set("category", category)
-  if (marketCode && marketCode !== "ALL") params.set("marketCode", marketCode)
-  const res = await fetch(`${BASE}/api/v1/apps?${params}`, { cache: "no-store" })
-  if (!res.ok) return []
-  return res.json()
+  const where: Record<string, unknown> = {}
+  if (category && category !== "ALL") where.category = category
+  if (marketCode && marketCode !== "ALL") {
+    where.markets = { some: { market: { code: marketCode } } }
+  }
+  return prisma.app.findMany({
+    where,
+    include: { _count: { select: { markets: true } } },
+    orderBy: { createdAt: "desc" },
+  })
 }
 
 async function getMarkets(): Promise<Market[]> {
-  const res = await fetch(`${BASE}/api/v1/markets`, { cache: "no-store" })
-  if (!res.ok) return []
-  return res.json()
+  return prisma.market.findMany({
+    include: { _count: { select: { apps: true } } },
+    orderBy: { name: "asc" },
+  })
 }
 
 interface SearchParams {

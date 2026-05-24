@@ -14,8 +14,7 @@ import {
 import { PlatformBadge } from "@/components/apps/PlatformBadge"
 import { PlusIcon } from "lucide-react"
 import { auth } from "@/lib/auth"
-
-const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+import { prisma } from "@/lib/prisma"
 
 const releaseTypeColors: Record<string, string> = {
   MAJOR: "bg-red-100 text-red-800 border-red-200",
@@ -29,15 +28,21 @@ interface Release {
   version: string
   platform: string
   releaseType: string
-  releaseDate: string
+  releaseDate: Date | string
   releaseNotes: string | null
   app: { id: string; name: string; slug: string }
 }
 
 async function getReleases(): Promise<{ data: Release[]; pagination: { total: number } }> {
-  const res = await fetch(`${BASE}/api/v1/releases?limit=50`, { cache: "no-store" })
-  if (!res.ok) return { data: [], pagination: { total: 0 } }
-  return res.json()
+  const [data, total] = await Promise.all([
+    prisma.release.findMany({
+      take: 50,
+      include: { app: { select: { id: true, name: true, slug: true } } },
+      orderBy: { releaseDate: "desc" },
+    }),
+    prisma.release.count(),
+  ])
+  return { data, pagination: { total } }
 }
 
 export default async function ReleasesPage() {

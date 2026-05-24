@@ -10,14 +10,23 @@ import {
 } from "@/components/ui/table"
 import { HealthStatusBadge } from "@/components/health/HealthStatusBadge"
 import { PlatformBadge } from "@/components/apps/PlatformBadge"
-
-const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
+import { prisma } from "@/lib/prisma"
 
 async function getMarket(code: string) {
-  const res = await fetch(`${BASE}/api/v1/markets/${code}`, { cache: "no-store" })
-  if (res.status === 404) return null
-  if (!res.ok) throw new Error("Failed to fetch market")
-  return res.json()
+  return prisma.market.findUnique({
+    where: { code: code.toUpperCase() },
+    include: {
+      apps: {
+        include: {
+          app: {
+            include: {
+              health: { orderBy: { createdAt: "desc" }, take: 1 },
+            },
+          },
+        },
+      },
+    },
+  })
 }
 
 export default async function MarketDetailPage({
