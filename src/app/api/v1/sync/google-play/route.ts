@@ -22,10 +22,16 @@ import { sendTelegramMessage, formatNewReleaseMessage } from "@/lib/notify"
 import { auth } from "@/lib/auth"
 
 export async function POST(request: Request) {
-  // Accept either a logged-in admin session (browser) or a secret token (cron job)
-  const secret = process.env.SYNC_SECRET
+  // Accept:
+  //  1. Vercel Cron (sends Authorization: Bearer <CRON_SECRET> automatically)
+  //  2. Our sync.sh / manual calls (Authorization: Bearer <SYNC_SECRET>)
+  //  3. Logged-in admin/PM session (browser)
+  const syncSecret = process.env.SYNC_SECRET
+  const cronSecret = process.env.CRON_SECRET
   const authHeader = request.headers.get("authorization") ?? ""
-  const tokenValid = secret && authHeader === `Bearer ${secret}`
+  const tokenValid =
+    (syncSecret && authHeader === `Bearer ${syncSecret}`) ||
+    (cronSecret && authHeader === `Bearer ${cronSecret}`)
 
   if (!tokenValid) {
     // Fall back to session auth
@@ -152,10 +158,17 @@ export async function POST(request: Request) {
   })
 }
 
-// GET allowed in dev for easy browser testing
+// GET is called by Vercel Cron (and allowed in dev for easy browser testing)
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV !== "development") {
-    return Response.json({ error: "GET only allowed in development" }, { status: 405 })
+  const cronSecret = process.env.CRON_SECRET
+  const syncSecret = process.env.SYNC_SECRET
+  const authHeader = request.headers.get("authorization") ?? ""
+  const isVercelCron =
+    (cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+    (syncSecret && authHeader === `Bearer ${syncSecret}`)
+
+  if (!isVercelCron && process.env.NODE_ENV !== "development") {
+    return Response.json({ error: "GET only allowed for Vercel Cron or in development" }, { status: 405 })
   }
   return POST(request)
 }

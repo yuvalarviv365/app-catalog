@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/v1/sync/google-play",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}
