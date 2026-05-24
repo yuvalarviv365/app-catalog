@@ -48,7 +48,8 @@ async function getReleases(): Promise<{ data: Release[]; pagination: { total: nu
 export default async function ReleasesPage() {
   const session = await auth()
   const user = session?.user as { role?: string } | undefined
-  const canCreate = user?.role === "ADMIN" || user?.role === "PM"
+  const isAdmin = user?.role === "ADMIN"
+  const canCreate = isAdmin || user?.role === "PM"
 
   const { data: releases, pagination } = await getReleases()
 
@@ -62,7 +63,7 @@ export default async function ReleasesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <SyncButton label="Sync Play Store" />
+          {isAdmin && <SyncButton label="Sync Play Store" />}
           {canCreate && (
             <Link href="/releases/new">
               <Button size="sm">
