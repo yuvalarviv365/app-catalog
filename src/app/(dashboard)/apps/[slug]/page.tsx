@@ -23,7 +23,7 @@ import { BPHealthTab } from "@/components/health/BPHealthTab"
 import { GlobeIcon, GitBranchIcon, UserIcon, PackageIcon, TagIcon, CalendarIcon, SmartphoneIcon, ExternalLinkIcon, PencilIcon } from "lucide-react"
 
 
-const BASE = "http://localhost:3000"
+const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 const releaseTypeColors: Record<string, string> = {
   MAJOR: "bg-red-100 text-red-800 border-red-200",

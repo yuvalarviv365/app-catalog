@@ -11,7 +11,7 @@ import {
 import { HealthStatusBadge } from "@/components/health/HealthStatusBadge"
 import { PlatformBadge } from "@/components/apps/PlatformBadge"
 
-const BASE = "http://localhost:3000"
+const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 async function getMarket(code: string) {
   const res = await fetch(`${BASE}/api/v1/markets/${code}`, { cache: "no-store" })

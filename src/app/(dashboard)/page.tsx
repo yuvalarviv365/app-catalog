@@ -2,7 +2,7 @@ import { SummaryCards } from "@/components/dashboard/SummaryCards"
 import { WorldMap, type MarketPin } from "@/components/dashboard/WorldMap"
 import { RecentReleases } from "@/components/dashboard/RecentReleases"
 
-const BASE = "http://localhost:3000"
+const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 async function getSummary() {
   const res = await fetch(`${BASE}/api/v1/health/summary`, { cache: "no-store" })

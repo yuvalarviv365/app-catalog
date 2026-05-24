@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-const BASE = "http://localhost:3000"
+const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 interface Market {
   id: string

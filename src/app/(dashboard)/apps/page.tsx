@@ -5,7 +5,7 @@ import { PlusIcon, SmartphoneIcon, MonitorIcon, TabletIcon, LayersIcon } from "l
 import { AppsFilterBar } from "@/components/apps/AppsFilterBar"
 import { Suspense } from "react"
 
-const BASE = "http://localhost:3000"
+const BASE = process.env.NEXTAUTH_URL ?? "http://localhost:3000"
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
   LIVESCORES: "from-cyan-500 to-blue-600",
