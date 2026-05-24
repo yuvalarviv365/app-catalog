@@ -1,0 +1,211 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Platform {
+  WEB
+  IOS
+  ANDROID
+  CROSS_PLATFORM
+}
+
+enum AppCategory {
+  LIVESCORES
+  CASINO
+  SPORTS
+  OTHER
+}
+
+enum AppStatus {
+  ACTIVE
+  DEPRECATED
+  SUNSET
+  NOT_ACTIVE
+}
+
+enum Region {
+  EMEA
+  LATAM
+  APAC
+  AMERICAS
+}
+
+enum AppMarketStatus {
+  LIVE
+  SOFT_LAUNCH
+  PAUSED
+  PLANNED
+  RETIRED
+}
+
+enum ReleaseType {
+  MAJOR
+  MINOR
+  PATCH
+  HOTFIX
+}
+
+enum HealthStatusValue {
+  HEALTHY
+  DEGRADED
+  OUTAGE
+  MAINTENANCE
+  UNKNOWN
+}
+
+enum IncidentSeverity {
+  P1
+  P2
+  P3
+}
+
+enum IncidentStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+}
+
+enum UserRole {
+  ADMIN
+  PM
+  VIEWER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  role         UserRole @default(VIEWER)
+  passwordHash String?
+  createdAt    DateTime @default(now())
+
+  ownedApps     App[]          @relation("AppOwner")
+  releases      Release[]
+  healthReports HealthStatus[]
+  incidents     Incident[]
+}
+
+model App {
+  id            String      @id @default(cuid())
+  name          String
+  slug          String      @unique
+  description   String?
+  platform      Platform
+  category      AppCategory
+  iconUrl       String?
+  repositoryUrl String?
+  packageName      String?     // e.g. com.yourcompany.appname (used for Google Play sync)
+  storeReleasedAt  DateTime?   // Original Play Store release date (from scraper)
+  redashName       String?     // Identifier used in Redash BP query (e.g. "BwinAustria-LS")
+  status           AppStatus   @default(ACTIVE)
+  ownerId       String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  owner     User?          @relation("AppOwner", fields: [ownerId], references: [id])
+  markets   AppMarket[]
+  releases  Release[]
+  health    HealthStatus[]
+  incidents Incident[]
+  bpMetrics BPMetric[]
+}
+
+model BPMetric {
+  id                 String   @id @default(cuid())
+  appId              String
+  application        String   // raw Redash application name
+  version            String   // app version string (e.g. "0.2.8")
+  userType           String   // "Organic" | "UA"
+  date               DateTime
+  firstOpened        Int
+  firstBP            Int
+  perc               Float    // BP % (first_bp / first_opened * 100)
+  afCoverage         Float?   // AppsFlyer coverage %
+  medianAfParamsLoad Float?   // Median AF params load time (seconds)
+  syncedAt           DateTime @default(now())
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, version, userType, date])
+}
+
+model Market {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  region    Region
+  flagEmoji String?
+  createdAt DateTime @default(now())
+
+  apps      AppMarket[]
+  health    HealthStatus[]
+  incidents Incident[]
+}
+
+model AppMarket {
+  id         String          @id @default(cuid())
+  appId      String
+  marketId   String
+  launchDate DateTime?
+  status     AppMarketStatus @default(PLANNED)
+  notes      String?
+
+  app    App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  market Market @relation(fields: [marketId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, marketId])
+}
+
+model Release {
+  id           String      @id @default(cuid())
+  appId        String
+  version      String
+  platform     Platform
+  releaseDate  DateTime
+  releaseType  ReleaseType
+  releaseNotes String      @db.Text
+  storeUrl     String?
+  releasedById String?
+  createdAt    DateTime    @default(now())
+
+  app        App   @relation(fields: [appId], references: [id], onDelete: Cascade)
+  releasedBy User? @relation(fields: [releasedById], references: [id])
+}
+
+model HealthStatus {
+  id           String            @id @default(cuid())
+  appId        String
+  marketId     String?
+  reportedById String?
+  status       HealthStatusValue @default(UNKNOWN)
+  notes        String?
+  resolvedAt   DateTime?
+  createdAt    DateTime          @default(now())
+
+  app        App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  market     Market? @relation(fields: [marketId], references: [id])
+  reportedBy User?   @relation(fields: [reportedById], references: [id])
+}
+
+model Incident {
+  id           String           @id @default(cuid())
+  appId        String
+  marketId     String?
+  title        String
+  severity     IncidentSeverity
+  status       IncidentStatus   @default(OPEN)
+  startedAt    DateTime         @default(now())
+  resolvedAt   DateTime?
+  description  String           @db.Text
+  reportedById String?
+  createdAt    DateTime         @default(now())
+
+  app        App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  market     Market? @relation(fields: [marketId], references: [id])
+  reportedBy User?   @relation(fields: [reportedById], references: [id])
+}
