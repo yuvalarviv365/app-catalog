@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { AppHealthCard } from "@/components/health/AppHealthCard"
 import { CollapsibleSection } from "@/components/health/CollapsibleSection"
 import { UserTypeToggle } from "@/components/health/UserTypeToggle"
+import { RefreshButton } from "@/components/health/RefreshButton"
 import { Suspense } from "react"
 
 const DAYS = 7
@@ -134,6 +135,7 @@ export default async function HealthPage({
           <Suspense>
             <UserTypeToggle current={userType} />
           </Suspense>
+          <RefreshButton />
         </div>
       </div>
 
